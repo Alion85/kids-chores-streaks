@@ -15,7 +15,7 @@ export default function RegisterScreen() {
   async function onRegister() {
     try {
       setLoading(true);
-      await signUp(email.trim(), password);
+      await signUp(email.trim(), password, role, displayName.trim() || 'Usuario');
       const session = await getCurrentSession();
       const userId = session?.user?.id;
       if (!userId) {

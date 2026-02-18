@@ -14,8 +14,17 @@ export async function signIn(email: string, password: string) {
   return data;
 }
 
-export async function signUp(email: string, password: string) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+export async function signUp(email: string, password: string, role: UserRole, displayName: string) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        role,
+        display_name: displayName,
+      },
+    },
+  });
   if (error) throw error;
   return data;
 }
@@ -44,8 +53,29 @@ export async function getMyRole(userId: string): Promise<UserRole | null> {
     .from('profiles')
     .select('role')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) return null;
   return (data?.role as UserRole) ?? null;
+}
+
+export async function ensureProfileFromSession() {
+  const session = await getCurrentSession();
+  const user = session?.user;
+  if (!user?.id) return null;
+
+  const existingRole = await getMyRole(user.id);
+  if (existingRole) return existingRole;
+
+  const metaRole = user.user_metadata?.role;
+  const role: UserRole = metaRole === 'child' ? 'child' : 'parent';
+  const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Usuario';
+
+  await createProfile({
+    id: user.id,
+    role,
+    displayName,
+  });
+
+  return role;
 }

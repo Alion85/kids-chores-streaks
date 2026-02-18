@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useEffect, useState } from 'react';
-import { getCurrentSession, getMyRole } from '@/lib/auth';
+import { ensureProfileFromSession, getCurrentSession, getMyRole } from '@/lib/auth';
 
 export default function Index() {
   const [target, setTarget] = useState<string | null>(null);
@@ -15,7 +15,9 @@ export default function Index() {
           return;
         }
 
-        const role = await getMyRole(session.user.id);
+        let role = await getMyRole(session.user.id);
+        if (!role) role = await ensureProfileFromSession();
+
         if (role === 'parent') setTarget('/parent');
         else if (role === 'child') setTarget('/child');
         else setTarget('/(auth)');

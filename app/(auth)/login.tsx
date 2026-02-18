@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert } from 'react-native';
-import { getCurrentSession, getMyRole, signIn } from '@/lib/auth';
+import { ensureProfileFromSession, getCurrentSession, getMyRole, signIn } from '@/lib/auth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -15,10 +15,17 @@ export default function LoginScreen() {
       const session = await getCurrentSession();
       const userId = session?.user?.id;
       if (!userId) throw new Error('No session');
-      const role = await getMyRole(userId);
+      let role = await getMyRole(userId);
+      if (!role) {
+        role = await ensureProfileFromSession();
+      }
+
       if (role === 'parent') router.replace('/parent');
       else if (role === 'child') router.replace('/child');
-      else router.replace('/(auth)');
+      else {
+        Alert.alert('Perfil incompleto', 'No se pudo resolver el rol de esta cuenta.');
+        router.replace('/(auth)');
+      }
     } catch (e: any) {
       Alert.alert('Error al iniciar sesión', e?.message ?? 'Intenta de nuevo');
     } finally {
