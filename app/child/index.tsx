@@ -90,7 +90,9 @@ export default function ChildHome() {
       <View style={styles.hero}>
         <Text style={styles.heroTop}>MY TASKS</Text>
         <Text style={styles.heroTitle}>Mi Tablero</Text>
-        <Text style={styles.heroSubtitle}>Cumple tareas y mantén tu racha 🔥</Text>
+        <View style={styles.yellowBadge}>
+          <Text style={styles.yellowBadgeText}>Cumple tareas y mantén tu racha 🔥</Text>
+        </View>
       </View>
 
       <View style={styles.cardWhite}>
@@ -141,6 +143,15 @@ const styles = StyleSheet.create({
   heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   heroTitle: { marginTop: 6, color: COLORS.white, fontSize: 30, fontWeight: '900' },
   heroSubtitle: { color: '#e0e7ff', marginTop: 6, fontSize: 14 },
+  yellowBadge: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.yellow,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  yellowBadgeText: { color: '#111827', fontWeight: '900', fontSize: 13 },
 
   cardWhite: {
     backgroundColor: COLORS.white,
@@ -163,12 +174,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 16,
     paddingVertical: 10,
-    backgroundColor: '#0f172a',
+    backgroundColor: COLORS.orange,
   },
   doneBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900' },
 
   secondaryBtn: {
-    backgroundColor: COLORS.blue,
+    backgroundColor: COLORS.orange,
     borderRadius: 18,
     paddingVertical: 12,
     marginTop: 6,
