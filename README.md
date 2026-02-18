@@ -5,10 +5,12 @@ App para que padres asignen tareas a niños y estos construyan rachas (streaks).
 ## MVP (v1)
 
 - Login con rol: **Padre** o **Niño**
+- Registro e inicio de sesión con Supabase Auth
+- Creación de perfil (`profiles`) con rol
+- Redirección automática según rol
 - Padres crean tareas (diarias/semanales)
 - Niños marcan tareas como completadas
 - Rachas automáticas por tarea
-- Panel simple de progreso
 
 ## Stack
 
@@ -19,7 +21,7 @@ App para que padres asignen tareas a niños y estos construyan rachas (streaks).
 ## Estructura
 
 - `app/` rutas de la app (auth/parent/child)
-- `lib/` utilidades (cliente Supabase)
+- `lib/` utilidades (cliente Supabase + auth)
 - `supabase/schema.sql` modelo de datos inicial
 - `docs/roadmap.md` fases de producto
 
@@ -34,18 +36,19 @@ App para que padres asignen tareas a niños y estos construyan rachas (streaks).
    cp .env.example .env
    ```
 3. Completar `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
-4. Levantar app:
+4. En Supabase, correr el SQL de `supabase/schema.sql`.
+5. Levantar app:
    ```bash
    npm run start
    ```
 
-## Crear repo en GitHub (cuando estés logueado)
+## Flujo actual
 
-```bash
-gh auth login
-git init
-git add .
-git commit -m "feat: scaffold MVP chores + streaks"
-gh repo create kids-chores-streaks --public --source=. --remote=origin --push
-```
+- `/` revisa sesión actual y rol en `profiles`.
+- Si no hay sesión: va a `/(auth)`.
+- `/(auth)/register?role=parent|child` crea usuario + perfil.
+- `/(auth)/login` inicia sesión y redirige por rol.
 
+## Próximo paso recomendado
+
+Implementar CRUD de tareas (padres) y listado/completado (niños).
