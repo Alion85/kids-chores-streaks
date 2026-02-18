@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View, Text, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, Pressable, Alert, ScrollView, StyleSheet } from 'react-native';
 import { getCurrentSession, signOut } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -56,7 +56,7 @@ export default function ChildHome() {
         status: 'pending',
       });
       if (error) throw error;
-      Alert.alert('¡Bien!', 'Tarea enviada para aprobación.');
+      Alert.alert('¡Bien!', 'Tarea enviada para aprobación ✅');
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'No se pudo marcar');
     } finally {
@@ -74,39 +74,90 @@ export default function ChildHome() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 10 }}>
-      <Text style={{ fontSize: 24, fontWeight: '700' }}>Mi Tablero</Text>
-      <Text style={{ color: '#374151' }}>Tus tareas asignadas:</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <View style={styles.hero}>
+        <Text style={styles.heroTitle}>Mi Tablero</Text>
+        <Text style={styles.heroSubtitle}>Completa tus tareas y mantén tu racha 🔥</Text>
+      </View>
 
-      {tasks.length === 0 ? (
-        <Text style={{ color: '#6b7280' }}>Aún no tienes tareas asignadas.</Text>
-      ) : (
-        <View style={{ gap: 8 }}>
-          {tasks.map((task) => (
-            <View key={task.assignment_id} style={{ borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 10, padding: 12 }}>
-              <Text style={{ fontWeight: '700' }}>{task.title}</Text>
-              <Text style={{ color: '#374151' }}>
-                {task.frequency === 'daily' ? 'Diaria' : 'Semanal'} · {task.points} pts
-              </Text>
-              <Pressable
-                onPress={() => markDone(task.assignment_id)}
-                disabled={loading}
-                style={{ backgroundColor: '#16a34a', padding: 10, borderRadius: 8, marginTop: 8 }}
-              >
-                <Text style={{ color: 'white', fontWeight: '700', textAlign: 'center' }}>Marcar como hecha</Text>
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      )}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>🎒 Mis tareas</Text>
+        {tasks.length === 0 ? (
+          <Text style={styles.emptyText}>Aún no tienes tareas asignadas.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {tasks.map((task) => (
+              <View key={task.assignment_id} style={styles.taskItem}>
+                <Text style={styles.taskTitle}>{task.title}</Text>
+                <Text style={styles.taskMeta}>
+                  {task.frequency === 'daily' ? 'Diaria' : 'Semanal'} · {task.points} pts
+                </Text>
+                <Pressable
+                  onPress={() => markDone(task.assignment_id)}
+                  disabled={loading}
+                  style={[styles.doneBtn, loading && { opacity: 0.7 }]}
+                >
+                  <Text style={styles.doneBtnText}>Marcar como hecha</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
 
-      <Pressable onPress={loadTasks} style={{ backgroundColor: '#e5e7eb', padding: 12, borderRadius: 10 }}>
-        <Text style={{ textAlign: 'center', fontWeight: '700' }}>Recargar</Text>
-      </Pressable>
+        <Pressable onPress={loadTasks} style={styles.secondaryBtn}>
+          <Text style={styles.secondaryBtnText}>Recargar</Text>
+        </Pressable>
+      </View>
 
-      <Pressable onPress={onLogout} style={{ marginTop: 8, backgroundColor: '#111827', padding: 12, borderRadius: 10 }}>
-        <Text style={{ color: 'white', fontWeight: '700', textAlign: 'center' }}>Cerrar sesión</Text>
+      <Pressable onPress={onLogout} style={styles.logoutBtn}>
+        <Text style={styles.logoutBtnText}>Cerrar sesión</Text>
       </Pressable>
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { padding: 16, gap: 14, paddingBottom: 34 },
+  hero: {
+    backgroundColor: '#0ea5e9',
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: '#0ea5e9',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  heroTitle: { color: 'white', fontSize: 28, fontWeight: '800' },
+  heroSubtitle: { color: '#e0f2fe', marginTop: 6, fontSize: 14 },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 10,
+  },
+  sectionTitle: { fontSize: 19, fontWeight: '800', color: '#0f172a' },
+  emptyText: { color: '#64748b', fontSize: 15 },
+  taskItem: {
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+  },
+  taskTitle: { fontWeight: '800', color: '#0f172a', fontSize: 16 },
+  taskMeta: { color: '#334155', marginTop: 3 },
+  doneBtn: {
+    marginTop: 8,
+    backgroundColor: '#16a34a',
+    borderRadius: 10,
+    padding: 10,
+  },
+  doneBtnText: { color: 'white', textAlign: 'center', fontWeight: '800' },
+  secondaryBtn: { backgroundColor: '#e2e8f0', padding: 12, borderRadius: 10, marginTop: 8 },
+  secondaryBtnText: { textAlign: 'center', fontWeight: '800', color: '#0f172a' },
+  logoutBtn: { backgroundColor: '#0f172a', padding: 14, borderRadius: 12 },
+  logoutBtnText: { color: 'white', textAlign: 'center', fontWeight: '800', fontSize: 16 },
+});
