@@ -31,7 +31,6 @@ const COLORS = {
 
 const WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const AVATARS = ['🧑', '👨', '👩', '🦸', '🧔'];
 
 function next7Days(from = new Date()) {
   const now = from;
@@ -54,8 +53,7 @@ export default function ParentHome() {
   const [showMonthCalendar, setShowMonthCalendar] = useState(false);
   const [monthCursor, setMonthCursor] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
-  const [parentName, setParentName] = useState('Padre/Madre');
-  const [avatarEmoji, setAvatarEmoji] = useState('🧑');
+  const [parentName, setParentName] = useState('Adrián Román');
 
   const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
@@ -152,24 +150,13 @@ export default function ParentHome() {
       <View style={styles.hero}>
         <View style={styles.heroHeaderRow}>
           <View style={styles.heroAvatarCircle}>
-            <Text style={styles.heroAvatarText}>{avatarEmoji}</Text>
+            <Text style={styles.heroAvatarText}>👨🏻</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTop}>WORKSPACE</Text>
-            <Text style={styles.heroTitle}>Panel de Padres</Text>
             <Text style={styles.heroName}>{parentName}</Text>
+            <Text style={styles.heroTitle}>Panel de Padres</Text>
           </View>
-        </View>
-
-        <View style={styles.avatarRow}>
-          {AVATARS.map((a) => {
-            const active = avatarEmoji === a;
-            return (
-              <Pressable key={a} onPress={() => setAvatarEmoji(a)} style={[styles.avatarOption, active && styles.avatarOptionActive]}>
-                <Text style={styles.avatarOptionText}>{a}</Text>
-              </Pressable>
-            );
-          })}
         </View>
       </View>
 
@@ -328,21 +315,8 @@ const styles = StyleSheet.create({
   },
   heroAvatarText: { fontSize: 30 },
   heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-  heroTitle: { marginTop: 2, color: COLORS.white, fontSize: 30, fontWeight: '900' },
-  heroName: { color: '#e0e7ff', marginTop: 2, fontSize: 14, fontWeight: '700' },
-  avatarRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  avatarOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#ffffff22',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ffffff33',
-  },
-  avatarOptionActive: { backgroundColor: '#ffffff55', borderColor: '#fff' },
-  avatarOptionText: { fontSize: 22 },
+  heroName: { color: '#e0e7ff', marginTop: 2, fontSize: 15, fontWeight: '800' },
+  heroTitle: { marginTop: 1, color: COLORS.white, fontSize: 30, fontWeight: '900' },
   cardWhite: { backgroundColor: COLORS.white, borderRadius: 26, padding: 14, gap: 10 },
   sectionTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text },
   label: { fontWeight: '800', color: COLORS.text },
