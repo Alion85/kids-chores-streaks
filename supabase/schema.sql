@@ -20,6 +20,7 @@ create table if not exists chores (
   description text,
   frequency text not null check (frequency in ('daily','weekly','custom')),
   points int not null default 10,
+  active_days int[] not null default '{1,2,3,4,5}',
   requires_parent_approval boolean not null default true,
   active boolean not null default true,
   created_by uuid not null references profiles(id),

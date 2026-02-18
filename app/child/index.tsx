@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, Alert, ScrollView, StyleSheet } from 'react-native';
 import { getCurrentSession, signOut } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -14,6 +14,7 @@ const COLORS = {
   text: '#0F172A',
 };
 
+const WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const tileColors = [COLORS.yellow, COLORS.orange, COLORS.blue, COLORS.green];
 
 type TaskItem = {
@@ -21,11 +22,23 @@ type TaskItem = {
   title: string;
   frequency: 'daily' | 'weekly';
   points: number;
+  active_days?: number[];
 };
+
+function next7Days() {
+  const now = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    return d;
+  });
+}
 
 export default function ChildHome() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [viewDate, setViewDate] = useState<Date>(new Date());
+  const weekDates = useMemo(() => next7Days(), []);
 
   async function loadTasks() {
     try {
@@ -35,7 +48,7 @@ export default function ChildHome() {
 
       const { data, error } = await supabase
         .from('chore_assignments')
-        .select('id, chore:chores(title,frequency,points)')
+        .select('id, chore:chores(title,frequency,points,active_days)')
         .eq('child_id', userId)
         .order('created_at', { ascending: false });
 
@@ -46,6 +59,7 @@ export default function ChildHome() {
         title: row.chore?.title,
         frequency: row.chore?.frequency,
         points: row.chore?.points ?? 10,
+        active_days: row.chore?.active_days ?? [],
       }));
 
       setTasks(parsed);
@@ -85,33 +99,44 @@ export default function ChildHome() {
     }
   }
 
+  const selectedWeekday = viewDate.getDay();
+  const tasksForDay = tasks.filter((t) => !t.active_days?.length || t.active_days.includes(selectedWeekday));
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.hero}>
         <Text style={styles.heroTop}>MY TASKS</Text>
         <Text style={styles.heroTitle}>Mi Tablero</Text>
-        <View style={styles.yellowBadge}>
-          <Text style={styles.yellowBadgeText}>Cumple tareas y mantén tu racha 🔥</Text>
-        </View>
       </View>
 
       <View style={styles.cardWhite}>
-        <Text style={styles.sectionTitle}>Tareas asignadas</Text>
-        {tasks.length === 0 ? (
-          <Text style={styles.emptyText}>Aún no tienes tareas asignadas.</Text>
+        <Text style={styles.sectionTitle}>Calendario</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {weekDates.map((d) => {
+            const active = d.toDateString() === viewDate.toDateString();
+            return (
+              <Pressable key={d.toISOString()} onPress={() => setViewDate(d)} style={[styles.datePill, active && styles.datePillActive]}>
+                <Text style={[styles.datePillTop, active && { color: '#fff' }]}>{WEEK[d.getDay()]}</Text>
+                <Text style={[styles.datePillNum, active && { color: '#fff' }]}>{d.getDate()}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View style={styles.cardWhite}>
+        <Text style={styles.sectionTitle}>Tareas del día</Text>
+        {tasksForDay.length === 0 ? (
+          <Text style={styles.emptyText}>No tienes tareas para este día.</Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {tasks.map((task, i) => (
+            {tasksForDay.map((task, i) => (
               <View key={task.assignment_id} style={[styles.taskTile, { backgroundColor: tileColors[i % tileColors.length] }]}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
                 <Text style={styles.taskMeta}>
                   {task.frequency === 'daily' ? 'Diaria' : 'Semanal'} · {task.points} pts
                 </Text>
-                <Pressable
-                  onPress={() => markDone(task.assignment_id)}
-                  disabled={loading}
-                  style={[styles.doneBtn, loading && { opacity: 0.7 }]}
-                >
+                <Pressable onPress={() => markDone(task.assignment_id)} disabled={loading} style={[styles.doneBtn, loading && { opacity: 0.7 }]}>
                   <Text style={styles.doneBtnText}>Marcar como hecha</Text>
                 </Pressable>
               </View>
@@ -134,62 +159,23 @@ export default function ChildHome() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   container: { padding: 16, gap: 14, paddingBottom: 34 },
-
-  hero: {
-    backgroundColor: COLORS.blue,
-    borderRadius: 28,
-    padding: 20,
-  },
+  hero: { backgroundColor: COLORS.blue, borderRadius: 28, padding: 20 },
   heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   heroTitle: { marginTop: 6, color: COLORS.white, fontSize: 30, fontWeight: '900' },
-  heroSubtitle: { color: '#e0e7ff', marginTop: 6, fontSize: 14 },
-  yellowBadge: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.yellow,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  yellowBadgeText: { color: '#111827', fontWeight: '900', fontSize: 13 },
-
-  cardWhite: {
-    backgroundColor: COLORS.white,
-    borderRadius: 26,
-    padding: 14,
-    gap: 10,
-  },
-
+  cardWhite: { backgroundColor: COLORS.white, borderRadius: 26, padding: 14, gap: 10 },
   sectionTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text },
   emptyText: { color: '#64748b', fontSize: 15 },
-
-  taskTile: {
-    borderRadius: 20,
-    padding: 14,
-  },
+  datePill: { width: 66, borderRadius: 18, borderWidth: 1, borderColor: '#dbe1ee', paddingVertical: 10, alignItems: 'center', backgroundColor: '#fff' },
+  datePillActive: { backgroundColor: COLORS.blue, borderColor: COLORS.blue },
+  datePillTop: { color: '#334155', fontWeight: '700' },
+  datePillNum: { color: '#0f172a', fontWeight: '900', fontSize: 18 },
+  taskTile: { borderRadius: 20, padding: 14 },
   taskTitle: { color: '#0b1020', fontSize: 18, fontWeight: '900' },
   taskMeta: { color: '#1f2937', marginTop: 4, fontWeight: '700' },
-
-  doneBtn: {
-    marginTop: 10,
-    borderRadius: 16,
-    paddingVertical: 10,
-    backgroundColor: COLORS.orange,
-  },
+  doneBtn: { marginTop: 10, borderRadius: 16, paddingVertical: 10, backgroundColor: COLORS.orange },
   doneBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900' },
-
-  secondaryBtn: {
-    backgroundColor: COLORS.orange,
-    borderRadius: 18,
-    paddingVertical: 12,
-    marginTop: 6,
-  },
+  secondaryBtn: { backgroundColor: COLORS.orange, borderRadius: 18, paddingVertical: 12, marginTop: 6 },
   secondaryBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
-
-  logoutBtn: {
-    backgroundColor: '#0f172a',
-    borderRadius: 18,
-    paddingVertical: 14,
-  },
+  logoutBtn: { backgroundColor: '#0f172a', borderRadius: 18, paddingVertical: 14 },
   logoutBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
 });

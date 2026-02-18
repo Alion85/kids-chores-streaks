@@ -67,6 +67,7 @@ export async function createChoreAndAssign(params: {
   frequency: 'daily' | 'weekly';
   points: number;
   childId: string;
+  activeDays: number[];
 }) {
   const { profile, familyId } = await ensureParentFamily();
 
@@ -86,8 +87,9 @@ export async function createChoreAndAssign(params: {
       frequency: params.frequency,
       points: params.points,
       created_by: profile.id,
+      active_days: params.activeDays,
     })
-    .select('id,title,frequency,points,created_at')
+    .select('id,title,frequency,points,active_days,created_at')
     .single();
 
   if (choreError || !chore?.id) throw new Error('No se pudo crear la tarea');
@@ -106,7 +108,7 @@ export async function listMyCreatedChores() {
   const me = await getMyProfile();
   const { data, error } = await supabase
     .from('chores')
-    .select('id,title,frequency,points,created_at')
+    .select('id,title,frequency,points,active_days,created_at')
     .eq('created_by', me.id)
     .order('created_at', { ascending: false });
 
