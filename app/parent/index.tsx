@@ -29,9 +29,10 @@ const COLORS = {
 };
 
 const WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-function next7Days() {
-  const now = new Date();
+function next7Days(from = new Date()) {
+  const now = from;
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(now);
     d.setDate(now.getDate() + i);
@@ -48,9 +49,11 @@ export default function ParentHome() {
   const [activeDays, setActiveDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [myChores, setMyChores] = useState<any[]>([]);
   const [viewDate, setViewDate] = useState<Date>(new Date());
+  const [showMonthCalendar, setShowMonthCalendar] = useState(false);
+  const [monthCursor, setMonthCursor] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
 
-  const weekDates = useMemo(() => next7Days(), []);
+  const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
   function toggleDay(day: number) {
     setActiveDays((prev) =>
@@ -114,6 +117,19 @@ export default function ParentHome() {
     if (!Array.isArray(c.active_days) || c.active_days.length === 0) return true;
     return c.active_days.includes(selectedWeekday);
   });
+
+  const monthLabel = `${MONTHS[monthCursor.getMonth()]} ${monthCursor.getFullYear()}`;
+  const monthFirst = new Date(monthCursor.getFullYear(), monthCursor.getMonth(), 1);
+  const monthLast = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0);
+  const leadingBlanks = monthFirst.getDay();
+  const monthCells: Array<Date | null> = [
+    ...Array.from({ length: leadingBlanks }, () => null),
+    ...Array.from({ length: monthLast.getDate() }, (_, i) => new Date(monthCursor.getFullYear(), monthCursor.getMonth(), i + 1)),
+  ];
+
+  function shiftMonth(delta: number) {
+    setMonthCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
@@ -186,7 +202,19 @@ export default function ParentHome() {
       </View>
 
       <View style={styles.cardWhite}>
-        <Text style={styles.sectionTitle}>Calendario de tareas</Text>
+        <View style={styles.calendarHeaderRow}>
+          <Text style={styles.sectionTitle}>Calendario de tareas</Text>
+          <Pressable
+            onPress={() => {
+              setShowMonthCalendar((prev) => !prev);
+              setMonthCursor(new Date(viewDate.getFullYear(), viewDate.getMonth(), 1));
+            }}
+            style={styles.calendarToggleBtn}
+          >
+            <Text style={styles.calendarToggleText}>{showMonthCalendar ? 'Ver semana' : 'Ver mes'}</Text>
+          </Pressable>
+        </View>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {weekDates.map((d) => {
             const active = d.toDateString() === viewDate.toDateString();
@@ -198,6 +226,34 @@ export default function ParentHome() {
             );
           })}
         </ScrollView>
+
+        {showMonthCalendar && (
+          <View style={styles.monthWrap}>
+            <View style={styles.monthTopRow}>
+              <Pressable onPress={() => shiftMonth(-1)} style={styles.monthNavBtn}><Text style={styles.monthNavText}>‹</Text></Pressable>
+              <Text style={styles.monthTitle}>{monthLabel}</Text>
+              <Pressable onPress={() => shiftMonth(1)} style={styles.monthNavBtn}><Text style={styles.monthNavText}>›</Text></Pressable>
+            </View>
+
+            <View style={styles.monthWeekRow}>
+              {WEEK.map((w) => (
+                <Text key={w} style={styles.monthWeekLabel}>{w}</Text>
+              ))}
+            </View>
+
+            <View style={styles.monthGrid}>
+              {monthCells.map((d, idx) => {
+                if (!d) return <View key={`blank-${idx}`} style={styles.monthCellBlank} />;
+                const active = d.toDateString() === viewDate.toDateString();
+                return (
+                  <Pressable key={d.toISOString()} onPress={() => setViewDate(d)} style={[styles.monthCell, active && styles.monthCellActive]}>
+                    <Text style={[styles.monthCellText, active && styles.monthCellTextActive]}>{d.getDate()}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {choresForSelectedDay.length === 0 ? (
           <Text style={[styles.emptyText, { marginTop: 10 }]}>No hay tareas para este día.</Text>
@@ -250,10 +306,26 @@ const styles = StyleSheet.create({
   kidName: { color: '#0b1020', fontWeight: '900', fontSize: 16 },
   mainButton: { marginTop: 4, backgroundColor: COLORS.yellow, borderRadius: 18, paddingVertical: 14 },
   mainButtonText: { textAlign: 'center', color: '#111827', fontSize: 17, fontWeight: '900' },
+  calendarHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  calendarToggleBtn: { backgroundColor: '#e0e7ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
+  calendarToggleText: { color: '#1e3a8a', fontWeight: '800' },
   datePill: { width: 66, borderRadius: 18, borderWidth: 1, borderColor: '#dbe1ee', paddingVertical: 10, alignItems: 'center', backgroundColor: '#fff' },
   datePillActive: { backgroundColor: COLORS.blue, borderColor: COLORS.blue },
   datePillTop: { color: '#334155', fontWeight: '700' },
   datePillNum: { color: '#0f172a', fontWeight: '900', fontSize: 18 },
+  monthWrap: { marginTop: 10, backgroundColor: '#f8fafc', borderRadius: 16, padding: 10, borderWidth: 1, borderColor: '#dbe1ee' },
+  monthTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  monthNavBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center' },
+  monthNavText: { fontSize: 20, fontWeight: '900', color: '#0f172a', marginTop: -2 },
+  monthTitle: { fontWeight: '900', color: '#0f172a', fontSize: 16 },
+  monthWeekRow: { flexDirection: 'row', marginBottom: 6 },
+  monthWeekLabel: { width: `${100 / 7}%`, textAlign: 'center', color: '#64748b', fontWeight: '700', fontSize: 12 },
+  monthGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  monthCellBlank: { width: `${100 / 7}%`, height: 38 },
+  monthCell: { width: `${100 / 7}%`, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+  monthCellActive: { backgroundColor: COLORS.blue },
+  monthCellText: { color: '#0f172a', fontWeight: '700' },
+  monthCellTextActive: { color: '#fff' },
   taskTile: { borderRadius: 20, padding: 14 },
   taskTitle: { color: '#0b1020', fontSize: 18, fontWeight: '900' },
   taskMeta: { color: '#1f2937', marginTop: 4, fontWeight: '700' },
