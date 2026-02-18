@@ -9,7 +9,8 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { signOut } from '@/lib/auth';
+import { getCurrentSession, signOut } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import {
   createChoreAndAssign,
   listChildrenForMyFamily,
@@ -30,6 +31,7 @@ const COLORS = {
 
 const WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const AVATARS = ['🧑', '👨', '👩', '🦸', '🧔'];
 
 function next7Days(from = new Date()) {
   const now = from;
@@ -52,6 +54,8 @@ export default function ParentHome() {
   const [showMonthCalendar, setShowMonthCalendar] = useState(false);
   const [monthCursor, setMonthCursor] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
+  const [parentName, setParentName] = useState('Padre/Madre');
+  const [avatarEmoji, setAvatarEmoji] = useState('🧑');
 
   const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
@@ -63,10 +67,22 @@ export default function ParentHome() {
 
   async function refreshData() {
     try {
+      const session = await getCurrentSession();
+      const userId = session?.user?.id;
+
       const [kids, chores] = await Promise.all([listChildrenForMyFamily(), listMyCreatedChores()]);
       setChildren(kids);
       if (!selectedChildId && kids[0]?.id) setSelectedChildId(kids[0].id);
       setMyChores(chores);
+
+      if (userId) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', userId)
+          .maybeSingle();
+        if (data?.display_name) setParentName(data.display_name);
+      }
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'No se pudo cargar panel');
     }
@@ -134,8 +150,27 @@ export default function ParentHome() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.hero}>
-        <Text style={styles.heroTop}>WORKSPACE</Text>
-        <Text style={styles.heroTitle}>Panel de Padres</Text>
+        <View style={styles.heroHeaderRow}>
+          <View style={styles.heroAvatarCircle}>
+            <Text style={styles.heroAvatarText}>{avatarEmoji}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTop}>WORKSPACE</Text>
+            <Text style={styles.heroTitle}>Panel de Padres</Text>
+            <Text style={styles.heroName}>{parentName}</Text>
+          </View>
+        </View>
+
+        <View style={styles.avatarRow}>
+          {AVATARS.map((a) => {
+            const active = avatarEmoji === a;
+            return (
+              <Pressable key={a} onPress={() => setAvatarEmoji(a)} style={[styles.avatarOption, active && styles.avatarOptionActive]}>
+                <Text style={styles.avatarOptionText}>{a}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       <View style={styles.cardWhite}>
@@ -280,8 +315,34 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   container: { padding: 16, gap: 14, paddingBottom: 34 },
   hero: { backgroundColor: COLORS.blue, borderRadius: 28, padding: 20 },
+  heroHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroAvatarCircle: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: '#ffffff33',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff66',
+  },
+  heroAvatarText: { fontSize: 30 },
   heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-  heroTitle: { marginTop: 6, color: COLORS.white, fontSize: 30, fontWeight: '900' },
+  heroTitle: { marginTop: 2, color: COLORS.white, fontSize: 30, fontWeight: '900' },
+  heroName: { color: '#e0e7ff', marginTop: 2, fontSize: 14, fontWeight: '700' },
+  avatarRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  avatarOption: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#ffffff22',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ffffff33',
+  },
+  avatarOptionActive: { backgroundColor: '#ffffff55', borderColor: '#fff' },
+  avatarOptionText: { fontSize: 22 },
   cardWhite: { backgroundColor: COLORS.white, borderRadius: 26, padding: 14, gap: 10 },
   sectionTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text },
   label: { fontWeight: '800', color: COLORS.text },
