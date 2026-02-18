@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Chore Streaks",
+    "slug": "kids-chores-streaks",
+    "scheme": "chorestreaks",
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
