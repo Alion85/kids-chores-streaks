@@ -4,6 +4,18 @@ import { View, Text, Pressable, Alert, ScrollView, StyleSheet } from 'react-nati
 import { getCurrentSession, signOut } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
+const COLORS = {
+  bg: '#EEF0F6',
+  blue: '#3E63DD',
+  yellow: '#FFC700',
+  orange: '#FF7A1A',
+  green: '#00C853',
+  white: '#FFFFFF',
+  text: '#0F172A',
+};
+
+const tileColors = [COLORS.yellow, COLORS.orange, COLORS.blue, COLORS.green];
+
 type TaskItem = {
   assignment_id: string;
   title: string;
@@ -76,18 +88,19 @@ export default function ChildHome() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.hero}>
+        <Text style={styles.heroTop}>MY TASKS</Text>
         <Text style={styles.heroTitle}>Mi Tablero</Text>
-        <Text style={styles.heroSubtitle}>Completa tus tareas y mantén tu racha 🔥</Text>
+        <Text style={styles.heroSubtitle}>Cumple tareas y mantén tu racha 🔥</Text>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>🎒 Mis tareas</Text>
+      <View style={styles.cardWhite}>
+        <Text style={styles.sectionTitle}>Tareas asignadas</Text>
         {tasks.length === 0 ? (
           <Text style={styles.emptyText}>Aún no tienes tareas asignadas.</Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {tasks.map((task) => (
-              <View key={task.assignment_id} style={styles.taskItem}>
+            {tasks.map((task, i) => (
+              <View key={task.assignment_id} style={[styles.taskTile, { backgroundColor: tileColors[i % tileColors.length] }]}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
                 <Text style={styles.taskMeta}>
                   {task.frequency === 'daily' ? 'Diaria' : 'Semanal'} · {task.points} pts
@@ -117,47 +130,55 @@ export default function ChildHome() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#f8fafc' },
+  screen: { flex: 1, backgroundColor: COLORS.bg },
   container: { padding: 16, gap: 14, paddingBottom: 34 },
+
   hero: {
-    backgroundColor: '#0ea5e9',
-    borderRadius: 18,
-    padding: 18,
-    shadowColor: '#0ea5e9',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
+    backgroundColor: COLORS.blue,
+    borderRadius: 28,
+    padding: 20,
   },
-  heroTitle: { color: 'white', fontSize: 28, fontWeight: '800' },
-  heroSubtitle: { color: '#e0f2fe', marginTop: 6, fontSize: 14 },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
+  heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  heroTitle: { marginTop: 6, color: COLORS.white, fontSize: 30, fontWeight: '900' },
+  heroSubtitle: { color: '#e0e7ff', marginTop: 6, fontSize: 14 },
+
+  cardWhite: {
+    backgroundColor: COLORS.white,
+    borderRadius: 26,
     padding: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
     gap: 10,
   },
-  sectionTitle: { fontSize: 19, fontWeight: '800', color: '#0f172a' },
+
+  sectionTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text },
   emptyText: { color: '#64748b', fontSize: 15 },
-  taskItem: {
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: '#f8fafc',
+
+  taskTile: {
+    borderRadius: 20,
+    padding: 14,
   },
-  taskTitle: { fontWeight: '800', color: '#0f172a', fontSize: 16 },
-  taskMeta: { color: '#334155', marginTop: 3 },
+  taskTitle: { color: '#0b1020', fontSize: 18, fontWeight: '900' },
+  taskMeta: { color: '#1f2937', marginTop: 4, fontWeight: '700' },
+
   doneBtn: {
-    marginTop: 8,
-    backgroundColor: '#16a34a',
-    borderRadius: 10,
-    padding: 10,
+    marginTop: 10,
+    borderRadius: 16,
+    paddingVertical: 10,
+    backgroundColor: '#0f172a',
   },
-  doneBtnText: { color: 'white', textAlign: 'center', fontWeight: '800' },
-  secondaryBtn: { backgroundColor: '#e2e8f0', padding: 12, borderRadius: 10, marginTop: 8 },
-  secondaryBtnText: { textAlign: 'center', fontWeight: '800', color: '#0f172a' },
-  logoutBtn: { backgroundColor: '#0f172a', padding: 14, borderRadius: 12 },
-  logoutBtnText: { color: 'white', textAlign: 'center', fontWeight: '800', fontSize: 16 },
+  doneBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900' },
+
+  secondaryBtn: {
+    backgroundColor: COLORS.blue,
+    borderRadius: 18,
+    paddingVertical: 12,
+    marginTop: 6,
+  },
+  secondaryBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
+
+  logoutBtn: {
+    backgroundColor: '#0f172a',
+    borderRadius: 18,
+    paddingVertical: 14,
+  },
+  logoutBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
 });
