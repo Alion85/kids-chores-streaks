@@ -92,9 +92,6 @@ export default function ParentHome() {
       <View style={styles.hero}>
         <Text style={styles.heroTop}>WORKSPACE</Text>
         <Text style={styles.heroTitle}>Panel de Padres</Text>
-        <View style={styles.yellowBadge}>
-          <Text style={styles.yellowBadgeText}>Diseño colorido + redondeado ✨</Text>
-        </View>
       </View>
 
       <View style={styles.cardWhite}>
@@ -209,15 +206,6 @@ const styles = StyleSheet.create({
   heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   heroTitle: { marginTop: 6, color: COLORS.white, fontSize: 30, fontWeight: '900' },
   heroSubtitle: { color: '#e0e7ff', marginTop: 6, fontSize: 14 },
-  yellowBadge: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.yellow,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  yellowBadgeText: { color: '#111827', fontWeight: '900', fontSize: 13 },
 
   cardWhite: {
     backgroundColor: COLORS.white,
