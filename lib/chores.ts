@@ -79,7 +79,9 @@ export async function createChoreAndAssign(params: {
 
   if (childPatchError) throw new Error('No se pudo asociar niño a la familia');
 
-  const { data: chore, error: choreError } = await supabase
+  let chore: any = null;
+
+  const withDays = await supabase
     .from('chores')
     .insert({
       family_id: familyId,
@@ -92,7 +94,25 @@ export async function createChoreAndAssign(params: {
     .select('id,title,frequency,points,active_days,created_at')
     .single();
 
-  if (choreError || !chore?.id) throw new Error('No se pudo crear la tarea');
+  if (!withDays.error && withDays.data?.id) {
+    chore = withDays.data;
+  } else {
+    // Fallback temporal si aún no corrieron la migración de active_days
+    const legacy = await supabase
+      .from('chores')
+      .insert({
+        family_id: familyId,
+        title: params.title,
+        frequency: params.frequency,
+        points: params.points,
+        created_by: profile.id,
+      })
+      .select('id,title,frequency,points,created_at')
+      .single();
+
+    if (legacy.error || !legacy.data?.id) throw new Error('No se pudo crear la tarea');
+    chore = { ...legacy.data, active_days: [1, 2, 3, 4, 5] };
+  }
 
   const { error: assignmentError } = await supabase.from('chore_assignments').insert({
     chore_id: chore.id,
@@ -106,12 +126,22 @@ export async function createChoreAndAssign(params: {
 
 export async function listMyCreatedChores() {
   const me = await getMyProfile();
-  const { data, error } = await supabase
+
+  const withDays = await supabase
     .from('chores')
     .select('id,title,frequency,points,active_days,created_at')
     .eq('created_by', me.id)
     .order('created_at', { ascending: false });
 
-  if (error) throw error;
-  return data ?? [];
+  if (!withDays.error) return withDays.data ?? [];
+
+  // Fallback temporal si active_days no existe aún
+  const legacy = await supabase
+    .from('chores')
+    .select('id,title,frequency,points,created_at')
+    .eq('created_by', me.id)
+    .order('created_at', { ascending: false });
+
+  if (legacy.error) throw legacy.error;
+  return (legacy.data ?? []).map((c: any) => ({ ...c, active_days: [1, 2, 3, 4, 5] }));
 }

@@ -46,15 +46,34 @@ export default function ChildHome() {
       const userId = session?.user?.id;
       if (!userId) return;
 
-      const { data, error } = await supabase
+      const withDays = await supabase
         .from('chore_assignments')
         .select('id, chore:chores(title,frequency,points,active_days)')
         .eq('child_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      let rows: any[] = [];
 
-      const parsed: TaskItem[] = (data ?? []).map((row: any) => ({
+      if (!withDays.error) {
+        rows = withDays.data ?? [];
+      } else {
+        const legacy = await supabase
+          .from('chore_assignments')
+          .select('id, chore:chores(title,frequency,points)')
+          .eq('child_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (legacy.error) throw legacy.error;
+        rows = (legacy.data ?? []).map((r: any) => ({
+          ...r,
+          chore: {
+            ...r.chore,
+            active_days: [1, 2, 3, 4, 5],
+          },
+        }));
+      }
+
+      const parsed: TaskItem[] = rows.map((row: any) => ({
         assignment_id: row.id,
         title: row.chore?.title,
         frequency: row.chore?.frequency,
