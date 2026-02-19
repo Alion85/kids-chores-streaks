@@ -124,8 +124,15 @@ export default function ChildHome() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.hero}>
-        <Text style={styles.heroTop}>MY TASKS</Text>
-        <Text style={styles.heroTitle}>Mi Tablero</Text>
+        <View style={styles.heroHeaderRow}>
+          <View style={styles.heroAvatarCircle}>
+            <Text style={styles.heroAvatarText}>👦🏻</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTop}>MY TASKS</Text>
+            <Text style={styles.heroTitle}>Mi Tablero</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.cardWhite}>
@@ -179,8 +186,20 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
   container: { padding: 16, gap: 14, paddingBottom: 34 },
   hero: { backgroundColor: COLORS.blue, borderRadius: 28, padding: 20 },
+  heroHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heroAvatarCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#ffffff33',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff66',
+  },
+  heroAvatarText: { fontSize: 30 },
   heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
-  heroTitle: { marginTop: 6, color: COLORS.white, fontSize: 30, fontWeight: '900' },
+  heroTitle: { marginTop: 4, color: COLORS.white, fontSize: 30, fontWeight: '900' },
   cardWhite: { backgroundColor: COLORS.white, borderRadius: 26, padding: 14, gap: 10 },
   sectionTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text },
   emptyText: { color: '#64748b', fontSize: 15 },
