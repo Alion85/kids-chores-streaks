@@ -21,10 +21,14 @@ const AVATAR_AGES = [5, 7, 9, 11, 13, 15];
 const AVATAR_BASES = [
   { key: 'boy_white_black', label: 'Niño tez blanca pelo negro', emoji: '👦🏻' },
   { key: 'boy_white_blond', label: 'Niño tez blanca pelo güero', emoji: '👱🏻‍♂️' },
+  { key: 'boy_white_brown', label: 'Niño tez blanca pelo castaño', emoji: '🧒🏻' },
+  { key: 'boy_white_red', label: 'Niño tez blanca pelirrojo', emoji: '🧑🏻‍🦰' },
   { key: 'boy_brown_black', label: 'Niño moreno pelo negro', emoji: '👦🏾' },
   { key: 'boy_brown_blond', label: 'Niño moreno pelo güero', emoji: '👱🏾‍♂️' },
   { key: 'girl_white_black', label: 'Niña tez blanca pelo negro', emoji: '👧🏻' },
   { key: 'girl_white_blond', label: 'Niña tez blanca pelo güero', emoji: '👱🏻‍♀️' },
+  { key: 'girl_white_brown', label: 'Niña tez blanca pelo castaño', emoji: '🧒🏻' },
+  { key: 'girl_white_red', label: 'Niña tez blanca pelirroja', emoji: '👩🏻‍🦰' },
   { key: 'girl_brown_black', label: 'Niña morena pelo negro', emoji: '👧🏾' },
   { key: 'girl_brown_blond', label: 'Niña morena pelo güero', emoji: '👱🏾‍♀️' },
 ];
