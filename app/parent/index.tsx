@@ -95,6 +95,7 @@ export default function ParentHome() {
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [showChildConfig, setShowChildConfig] = useState(false);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [activeBottomTab, setActiveBottomTab] = useState<'children'>('children');
 
   const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
@@ -359,6 +360,30 @@ export default function ParentHome() {
         </View>
       </View>
 
+      {activeBottomTab === 'children' && (
+        <View style={styles.cardWhite}>
+          <Text style={styles.sectionTitle}>👨‍👩‍👧 Mis hijos</Text>
+          {children.length === 0 ? (
+            <Text style={styles.emptyText}>Aún no hay hijos registrados.</Text>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {children.map((kid) => {
+                const active = selectedChildId === kid.id;
+                return (
+                  <Pressable
+                    key={kid.id}
+                    onPress={() => setSelectedChildId(kid.id)}
+                    style={[styles.childQuickChip, active && styles.childQuickChipActive]}
+                  >
+                    <Text style={[styles.childQuickChipText, active && styles.childQuickChipTextActive]}>{kid.display_name}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
       <View style={styles.cardWhite}>
         <Text style={styles.sectionTitle}>Crear y asignar tarea</Text>
 
@@ -595,6 +620,16 @@ export default function ParentHome() {
       </View>
 
       <Pressable onPress={onLogout} style={styles.logoutBtn}><Text style={styles.logoutBtnText}>Cerrar sesión</Text></Pressable>
+
+      <View style={styles.bottomMenuWrap}>
+        <Pressable
+          onPress={() => setActiveBottomTab('children')}
+          style={[styles.bottomMenuItem, activeBottomTab === 'children' && styles.bottomMenuItemActive]}
+        >
+          <Text style={styles.bottomMenuIcon}>👨‍👩‍👧</Text>
+          <Text style={[styles.bottomMenuLabel, activeBottomTab === 'children' && styles.bottomMenuLabelActive]}>Mis hijos</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -727,8 +762,39 @@ const styles = StyleSheet.create({
   rankPos: { width: 28, fontWeight: '900', color: '#334155' },
   rankName: { flex: 1, fontWeight: '800', color: '#0f172a' },
   rankMeta: { fontWeight: '700', color: '#475569' },
+  childQuickChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#dbe1ee',
+    backgroundColor: '#f8fafc',
+  },
+  childQuickChipActive: { backgroundColor: '#dbeafe', borderColor: '#3E63DD' },
+  childQuickChipText: { fontWeight: '800', color: '#334155' },
+  childQuickChipTextActive: { color: '#1e3a8a' },
   secondaryBtn: { backgroundColor: COLORS.orange, borderRadius: 18, paddingVertical: 12, marginTop: 6 },
   secondaryBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
   logoutBtn: { backgroundColor: '#0f172a', borderRadius: 18, paddingVertical: 14 },
   logoutBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
+  bottomMenuWrap: {
+    marginTop: 6,
+    backgroundColor: '#0f172a',
+    borderRadius: 22,
+    padding: 10,
+    alignItems: 'center',
+  },
+  bottomMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: '#1e293b',
+  },
+  bottomMenuItemActive: { backgroundColor: '#1d4ed8' },
+  bottomMenuIcon: { fontSize: 18 },
+  bottomMenuLabel: { color: '#cbd5e1', fontWeight: '800' },
+  bottomMenuLabelActive: { color: '#fff' },
 });
