@@ -10,6 +10,8 @@ create table if not exists profiles (
   family_id uuid references families(id) on delete set null,
   display_name text not null,
   role text not null check (role in ('parent','child')),
+  coins int not null default 0,
+  streak_count int not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -56,6 +58,15 @@ create table if not exists streaks (
   last_completed_date date,
   updated_at timestamptz not null default now(),
   unique(assignment_id)
+);
+
+create table if not exists wishlists (
+  id uuid primary key default gen_random_uuid(),
+  child_id uuid not null references profiles(id) on delete cascade,
+  title text not null,
+  cost_coins int not null default 50,
+  redeemed boolean not null default false,
+  created_at timestamptz not null default now()
 );
 
 -- TODO: agregar RLS policies por family_id + role

@@ -54,6 +54,9 @@ export default function ParentHome() {
   const [monthCursor, setMonthCursor] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [parentName, setParentName] = useState('Adrián Román');
+  const [wishTitle, setWishTitle] = useState('');
+  const [wishCost, setWishCost] = useState('120');
+  const [wishlist, setWishlist] = useState<any[]>([]);
 
   const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
@@ -90,6 +93,10 @@ export default function ParentHome() {
     refreshData();
   }, []);
 
+  useEffect(() => {
+    if (selectedChildId) loadWishlist(selectedChildId);
+  }, [selectedChildId]);
+
   async function onCreateAndAssign() {
     if (!title.trim()) return Alert.alert('Falta título', 'Escribe el nombre de la tarea');
     if (!selectedChildId) return Alert.alert('Falta niño', 'Selecciona a qué niño asignar');
@@ -115,6 +122,40 @@ export default function ParentHome() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadWishlist(childId: string) {
+    const { data, error } = await supabase
+      .from('wishlists')
+      .select('id,title,cost_coins,redeemed')
+      .eq('child_id', childId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      setWishlist([]);
+      return;
+    }
+    setWishlist(data ?? []);
+  }
+
+  async function onAddWish() {
+    if (!selectedChildId) return Alert.alert('Selecciona niño', 'Primero elige un niño.');
+    if (!wishTitle.trim()) return Alert.alert('Falta deseo', 'Escribe algo que quiera el niño.');
+
+    const { error } = await supabase.from('wishlists').insert({
+      child_id: selectedChildId,
+      title: wishTitle.trim(),
+      cost_coins: Number(wishCost) || 50,
+    });
+
+    if (error) {
+      Alert.alert('Error', 'No se pudo guardar wishlist. Corre el SQL de rewards.');
+      return;
+    }
+
+    setWishTitle('');
+    setWishCost('120');
+    await loadWishlist(selectedChildId);
   }
 
   async function onLogout() {
@@ -221,6 +262,41 @@ export default function ParentHome() {
         <Pressable onPress={onCreateAndAssign} disabled={loading || children.length === 0} style={[styles.mainButton, (loading || children.length === 0) && { opacity: 0.5 }]}>
           <Text style={styles.mainButtonText}>{loading ? 'Guardando...' : 'Crear y asignar'}</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.cardWhite}>
+        <Text style={styles.sectionTitle}>🪙 Wish List del niño</Text>
+        <TextInput
+          value={wishTitle}
+          onChangeText={setWishTitle}
+          placeholder="Ej: Lego nuevo"
+          placeholderTextColor="#94a3b8"
+          style={styles.input}
+        />
+        <TextInput
+          value={wishCost}
+          onChangeText={setWishCost}
+          keyboardType="number-pad"
+          placeholder="Costo en coins"
+          placeholderTextColor="#94a3b8"
+          style={[styles.input, { maxWidth: 170 }]}
+        />
+        <Pressable onPress={onAddWish} style={styles.coinBtn}>
+          <Text style={styles.coinBtnText}>Agregar deseo</Text>
+        </Pressable>
+
+        {wishlist.length === 0 ? (
+          <Text style={styles.emptyText}>Sin deseos todavía.</Text>
+        ) : (
+          <View style={{ gap: 8 }}>
+            {wishlist.map((w) => (
+              <View key={w.id} style={styles.wishItem}>
+                <Text style={styles.wishTitle}>{w.title}</Text>
+                <Text style={styles.wishCoins}>🪙 {w.cost_coins} coins</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <View style={styles.cardWhite}>
@@ -364,6 +440,23 @@ const styles = StyleSheet.create({
   taskTile: { borderRadius: 20, padding: 14 },
   taskTitle: { color: '#0b1020', fontSize: 18, fontWeight: '900' },
   taskMeta: { color: '#1f2937', marginTop: 4, fontWeight: '700' },
+  coinBtn: {
+    backgroundColor: '#F7C948',
+    borderRadius: 18,
+    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: '#D9A404',
+  },
+  coinBtnText: { textAlign: 'center', color: '#5a3b00', fontWeight: '900', fontSize: 16 },
+  wishItem: {
+    backgroundColor: '#fff7d6',
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#f1d074',
+  },
+  wishTitle: { fontWeight: '800', color: '#0f172a' },
+  wishCoins: { color: '#8a5a00', marginTop: 2, fontWeight: '800' },
   secondaryBtn: { backgroundColor: COLORS.orange, borderRadius: 18, paddingVertical: 12, marginTop: 6 },
   secondaryBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
   logoutBtn: { backgroundColor: '#0f172a', borderRadius: 18, paddingVertical: 14 },
