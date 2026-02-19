@@ -17,6 +17,27 @@ const COLORS = {
 const WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const tileColors = [COLORS.yellow, COLORS.orange, COLORS.blue, COLORS.green];
 
+const AVATAR_AGES = [5, 7, 9, 11, 13, 15];
+const AVATAR_BASES = [
+  { key: 'boy_white_black', label: 'Niño tez blanca pelo negro', emoji: '👦🏻' },
+  { key: 'boy_white_blond', label: 'Niño tez blanca pelo güero', emoji: '👱🏻‍♂️' },
+  { key: 'boy_brown_black', label: 'Niño moreno pelo negro', emoji: '👦🏾' },
+  { key: 'boy_brown_blond', label: 'Niño moreno pelo güero', emoji: '👱🏾‍♂️' },
+  { key: 'girl_white_black', label: 'Niña tez blanca pelo negro', emoji: '👧🏻' },
+  { key: 'girl_white_blond', label: 'Niña tez blanca pelo güero', emoji: '👱🏻‍♀️' },
+  { key: 'girl_brown_black', label: 'Niña morena pelo negro', emoji: '👧🏾' },
+  { key: 'girl_brown_blond', label: 'Niña morena pelo güero', emoji: '👱🏾‍♀️' },
+];
+
+const AVATAR_OPTIONS = AVATAR_AGES.flatMap((age) =>
+  AVATAR_BASES.map((base) => ({
+    id: `${base.key}_${age}`,
+    age,
+    label: `${base.label} (${age} años)`,
+    emoji: base.emoji,
+  }))
+);
+
 type TaskItem = {
   assignment_id: string;
   title: string;
@@ -86,6 +107,8 @@ export default function ChildHome() {
   const [coins, setCoins] = useState(0);
   const [streakCount, setStreakCount] = useState(0);
   const [wishlist, setWishlist] = useState<any[]>([]);
+  const [selectedAvatar, setSelectedAvatar] = useState('👦🏻');
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const weekDates = useMemo(() => next7Days(), []);
 
   async function loadTasks() {
@@ -228,15 +251,40 @@ export default function ChildHome() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.hero}>
         <View style={styles.heroHeaderRow}>
-          <View style={styles.heroAvatarCircle}>
-            <Text style={styles.heroAvatarText}>👦🏻</Text>
-          </View>
+          <Pressable style={styles.heroAvatarCircle} onPress={() => setShowAvatarPicker((p) => !p)}>
+            <Text style={styles.heroAvatarText}>{selectedAvatar}</Text>
+          </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTop}>MY TASKS</Text>
             <Text style={styles.heroTitle}>Mi Tablero</Text>
+            <Text style={styles.heroHint}>Toca el avatar para cambiarlo</Text>
           </View>
         </View>
       </View>
+
+      {showAvatarPicker && (
+        <View style={styles.cardWhite}>
+          <Text style={styles.sectionTitle}>Elige tu avatar</Text>
+          <View style={styles.avatarGrid}>
+            {AVATAR_OPTIONS.map((a) => {
+              const active = selectedAvatar === a.emoji;
+              return (
+                <Pressable
+                  key={a.id}
+                  onPress={() => {
+                    setSelectedAvatar(a.emoji);
+                    setShowAvatarPicker(false);
+                  }}
+                  style={[styles.avatarOption, active && styles.avatarOptionActive]}
+                >
+                  <Text style={styles.avatarEmoji}>{a.emoji}</Text>
+                  <Text style={styles.avatarAge}>{a.age}a</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      )}
 
       <View style={styles.cardWhite}>
         <Text style={styles.sectionTitle}>Rachas y Coins</Text>
@@ -336,6 +384,21 @@ const styles = StyleSheet.create({
   heroAvatarText: { fontSize: 30 },
   heroTop: { color: '#dbeafe', fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   heroTitle: { marginTop: 4, color: COLORS.white, fontSize: 30, fontWeight: '900' },
+  heroHint: { color: '#e0e7ff', marginTop: 2, fontSize: 12, fontWeight: '700' },
+  avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  avatarOption: {
+    width: '22%',
+    minWidth: 66,
+    borderWidth: 1,
+    borderColor: '#dbe1ee',
+    borderRadius: 14,
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  avatarOptionActive: { borderColor: '#3E63DD', backgroundColor: '#e0e7ff' },
+  avatarEmoji: { fontSize: 24 },
+  avatarAge: { marginTop: 2, color: '#334155', fontWeight: '700', fontSize: 12 },
   cardWhite: { backgroundColor: COLORS.white, borderRadius: 26, padding: 14, gap: 10 },
   sectionTitle: { fontSize: 22, fontWeight: '900', color: COLORS.text },
   emptyText: { color: '#64748b', fontSize: 15 },
