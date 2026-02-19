@@ -1,11 +1,26 @@
 {
   "expo": {
     "name": "Chore Streaks",
-    "slug": "kids-chores-streaks",
+    "slug": "kids-chores-streaks-road85",
     "scheme": "chorestreaks",
-    "plugins": ["expo-router"],
+    "ios": {
+      "bundleIdentifier": "com.road85.kidschoresstreaks"
+    },
+    "android": {
+      "package": "com.road85.kidschoresstreaks"
+    },
+    "plugins": [
+      "expo-router"
+    ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "47ed7545-340f-4590-a16c-0dcec28b1c48"
+      }
+    },
+    "owner": "road85"
   }
 }
