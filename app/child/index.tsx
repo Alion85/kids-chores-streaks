@@ -344,11 +344,29 @@ export default function ChildHome() {
         ) : (
           <View style={{ gap: 8 }}>
             {wishlist.map((w) => {
-              const canBuy = coins >= (w.cost_coins ?? 0);
+              const canBuy = !w.redeemed && coins >= (w.cost_coins ?? 0);
               return (
                 <View key={w.id} style={[styles.wishItem, canBuy && styles.wishAffordable]}>
                   <Text style={styles.wishTitle}>{w.title}</Text>
-                  <Text style={styles.wishCost}>🪙 {w.cost_coins} coins {canBuy ? '✅' : ''}</Text>
+                  <Text style={styles.wishCost}>🪙 {w.cost_coins} coins {w.redeemed ? '🎁 canjeado' : canBuy ? '✅' : ''}</Text>
+                  {!w.redeemed && (
+                    <Pressable
+                      disabled={!canBuy}
+                      onPress={async () => {
+                        const session = await getCurrentSession();
+                        const userId = session?.user?.id;
+                        if (!userId || !canBuy) return;
+                        await supabase.from('wishlists').update({ redeemed: true }).eq('id', w.id);
+                        const nextCoins = coins - (w.cost_coins ?? 0);
+                        await supabase.from('profiles').update({ coins: nextCoins }).eq('id', userId);
+                        setCoins(nextCoins);
+                        await loadTasks();
+                      }}
+                      style={[styles.redeemBtn, !canBuy && { opacity: 0.4 }]}
+                    >
+                      <Text style={styles.redeemBtnText}>Canjear</Text>
+                    </Pressable>
+                  )}
                 </View>
               );
             })}
@@ -468,6 +486,8 @@ const styles = StyleSheet.create({
   wishAffordable: { backgroundColor: '#dcfce7', borderColor: '#86efac' },
   wishTitle: { fontWeight: '800', color: '#0f172a' },
   wishCost: { color: '#8a5a00', marginTop: 2, fontWeight: '800' },
+  redeemBtn: { marginTop: 6, backgroundColor: '#F7C948', borderRadius: 10, paddingVertical: 8, borderWidth: 1, borderColor: '#D9A404' },
+  redeemBtnText: { textAlign: 'center', color: '#5a3b00', fontWeight: '900' },
   datePill: { width: 66, borderRadius: 18, borderWidth: 1, borderColor: '#dbe1ee', paddingVertical: 10, alignItems: 'center', backgroundColor: '#fff' },
   datePillActive: { backgroundColor: COLORS.blue, borderColor: COLORS.blue },
   datePillTop: { color: '#334155', fontWeight: '700' },

@@ -6,6 +6,8 @@ export type ProfileLite = {
   display_name: string;
   role: 'parent' | 'child';
   family_id: string | null;
+  coins?: number;
+  streak_count?: number;
 };
 
 async function getMyProfile() {
@@ -15,7 +17,7 @@ async function getMyProfile() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id,display_name,role,family_id')
+    .select('id,display_name,role,family_id,coins,streak_count')
     .eq('id', userId)
     .single();
 
@@ -53,7 +55,7 @@ export async function listChildrenForMyFamily() {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id,display_name,role,family_id')
+    .select('id,display_name,role,family_id,coins,streak_count')
     .eq('role', 'child')
     .or(`family_id.eq.${familyId},family_id.is.null`)
     .order('display_name', { ascending: true });

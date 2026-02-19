@@ -70,6 +70,12 @@ function next7Days(from = new Date()) {
   });
 }
 
+function dateDiffDays(a: Date, b: Date) {
+  const one = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const two = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return Math.floor((one - two) / (1000 * 60 * 60 * 24));
+}
+
 export default function ParentHome() {
   const [children, setChildren] = useState<ProfileLite[]>([]);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
@@ -88,6 +94,7 @@ export default function ParentHome() {
   const [wishCost, setWishCost] = useState('120');
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [showChildConfig, setShowChildConfig] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
 
   const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
@@ -103,6 +110,7 @@ export default function ParentHome() {
       const userId = session?.user?.id;
 
       const [kids, chores] = await Promise.all([listChildrenForMyFamily(), listMyCreatedChores()]);
+      await loadPendingApprovals();
       setChildren(kids);
       if (!selectedChildId && kids[0]?.id) setSelectedChildId(kids[0].id);
       setMyChores(chores);
@@ -206,6 +214,106 @@ export default function ParentHome() {
     if (res.error) {
       // si falta columna, dejamos selección visual local
     }
+  }
+
+  async function loadPendingApprovals() {
+    const pending = await supabase
+      .from('chore_completions')
+      .select('id,assignment_id,completed_for_date,status')
+      .eq('status', 'pending')
+      .order('completed_at', { ascending: false });
+
+    if (pending.error) {
+      setPendingApprovals([]);
+      return;
+    }
+
+    const enriched = await Promise.all(
+      (pending.data ?? []).map(async (row: any) => {
+        const assignment = await supabase
+          .from('chore_assignments')
+          .select('id,child_id,chore_id')
+          .eq('id', row.assignment_id)
+          .maybeSingle();
+
+        const chore = await supabase
+          .from('chores')
+          .select('title,points')
+          .eq('id', assignment.data?.chore_id)
+          .maybeSingle();
+
+        const child = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', assignment.data?.child_id)
+          .maybeSingle();
+
+        return {
+          ...row,
+          child_id: assignment.data?.child_id,
+          child_name: child.data?.display_name ?? 'Niño',
+          title: chore.data?.title ?? 'Tarea',
+          points: chore.data?.points ?? 10,
+        };
+      })
+    );
+
+    setPendingApprovals(enriched.filter((x) => !!x.child_id));
+  }
+
+  async function getLastApprovedDateForChild(childId: string) {
+    const assignments = await supabase.from('chore_assignments').select('id').eq('child_id', childId);
+    const ids = (assignments.data ?? []).map((a: any) => a.id);
+    if (!ids.length) return null;
+
+    const last = await supabase
+      .from('chore_completions')
+      .select('completed_for_date')
+      .in('assignment_id', ids)
+      .eq('status', 'approved')
+      .order('completed_for_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (last.error || !last.data?.completed_for_date) return null;
+    return new Date(last.data.completed_for_date);
+  }
+
+  async function handleApproval(item: any, approve: boolean) {
+    const session = await getCurrentSession();
+    const parentId = session?.user?.id;
+
+    if (approve) {
+      const profile = await supabase
+        .from('profiles')
+        .select('coins,streak_count')
+        .eq('id', item.child_id)
+        .maybeSingle();
+
+      const coins = profile.data?.coins ?? 0;
+      const streak = profile.data?.streak_count ?? 0;
+      const last = await getLastApprovedDateForChild(item.child_id);
+      const today = new Date(item.completed_for_date);
+      const nextStreak = !last ? 1 : dateDiffDays(today, last) <= 1 ? streak + 1 : 1;
+
+      await supabase
+        .from('profiles')
+        .update({ coins: coins + (item.points ?? 10), streak_count: nextStreak })
+        .eq('id', item.child_id);
+
+      await supabase
+        .from('chore_completions')
+        .update({ status: 'approved', approved_by: parentId, approved_at: new Date().toISOString() })
+        .eq('id', item.id);
+    } else {
+      await supabase
+        .from('chore_completions')
+        .update({ status: 'rejected', approved_by: parentId, approved_at: new Date().toISOString() })
+        .eq('id', item.id);
+    }
+
+    await refreshData();
+    await loadPendingApprovals();
   }
 
   async function onLogout() {
@@ -342,6 +450,43 @@ export default function ParentHome() {
         <Pressable onPress={onCreateAndAssign} disabled={loading || children.length === 0} style={[styles.mainButton, (loading || children.length === 0) && { opacity: 0.5 }]}>
           <Text style={styles.mainButtonText}>{loading ? 'Guardando...' : 'Crear y asignar'}</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.cardWhite}>
+        <Text style={styles.sectionTitle}>✅ Pendientes por aprobar</Text>
+        {pendingApprovals.length === 0 ? (
+          <Text style={styles.emptyText}>No hay tareas pendientes.</Text>
+        ) : (
+          <View style={{ gap: 8 }}>
+            {pendingApprovals.map((p) => (
+              <View key={p.id} style={styles.pendingItem}>
+                <Text style={styles.pendingTitle}>{p.child_name} · {p.title}</Text>
+                <Text style={styles.pendingMeta}>{p.completed_for_date} · +{p.points} coins</Text>
+                <View style={styles.row}>
+                  <Pressable style={styles.approveBtn} onPress={() => handleApproval(p, true)}>
+                    <Text style={styles.approveBtnText}>Aprobar</Text>
+                  </Pressable>
+                  <Pressable style={styles.rejectBtn} onPress={() => handleApproval(p, false)}>
+                    <Text style={styles.rejectBtnText}>Rechazar</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      <View style={styles.cardWhite}>
+        <Text style={styles.sectionTitle}>🏆 Ranking hermanos</Text>
+        {[...children]
+          .sort((a, b) => (b.coins ?? 0) - (a.coins ?? 0) || (b.streak_count ?? 0) - (a.streak_count ?? 0))
+          .map((c, i) => (
+            <View key={c.id} style={styles.rankItem}>
+              <Text style={styles.rankPos}>#{i + 1}</Text>
+              <Text style={styles.rankName}>{c.display_name}</Text>
+              <Text style={styles.rankMeta}>🪙 {c.coins ?? 0} · 🔥 {c.streak_count ?? 0}</Text>
+            </View>
+          ))}
       </View>
 
       <View style={styles.cardWhite}>
@@ -557,6 +702,31 @@ const styles = StyleSheet.create({
   },
   wishTitle: { fontWeight: '800', color: '#0f172a' },
   wishCoins: { color: '#8a5a00', marginTop: 2, fontWeight: '800' },
+  pendingItem: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbe1ee',
+    padding: 10,
+    gap: 6,
+  },
+  pendingTitle: { fontWeight: '800', color: '#0f172a' },
+  pendingMeta: { color: '#475569', fontWeight: '600' },
+  approveBtn: { backgroundColor: '#16a34a', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 },
+  approveBtnText: { color: 'white', fontWeight: '800' },
+  rejectBtn: { backgroundColor: '#ef4444', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 },
+  rejectBtnText: { color: 'white', fontWeight: '800' },
+  rankItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  rankPos: { width: 28, fontWeight: '900', color: '#334155' },
+  rankName: { flex: 1, fontWeight: '800', color: '#0f172a' },
+  rankMeta: { fontWeight: '700', color: '#475569' },
   secondaryBtn: { backgroundColor: COLORS.orange, borderRadius: 18, paddingVertical: 12, marginTop: 6 },
   secondaryBtnText: { color: COLORS.white, textAlign: 'center', fontWeight: '900', fontSize: 16 },
   logoutBtn: { backgroundColor: '#0f172a', borderRadius: 18, paddingVertical: 14 },
