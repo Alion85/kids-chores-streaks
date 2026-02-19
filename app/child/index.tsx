@@ -34,6 +34,32 @@ function next7Days() {
   });
 }
 
+function hexToRgb(hex: string) {
+  const value = hex.replace('#', '');
+  const bigint = parseInt(value, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255,
+  };
+}
+
+function streakColor(streak: number) {
+  const start = hexToRgb('#9CA3AF'); // gris
+  const end = hexToRgb('#00C853'); // verde
+  const t = Math.max(0, Math.min(streak / 20, 1));
+  const r = Math.round(start.r + (end.r - start.r) * t);
+  const g = Math.round(start.g + (end.g - start.g) * t);
+  const b = Math.round(start.b + (end.b - start.b) * t);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function dateDiffDays(a: Date, b: Date) {
+  const one = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const two = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return Math.floor((one - two) / (1000 * 60 * 60 * 24));
+}
+
 export default function ChildHome() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,10 +112,19 @@ export default function ChildHome() {
 
       setTasks(parsed);
 
-      const profile = await supabase.from('profiles').select('coins,streak_count').eq('id', userId).maybeSingle();
+      const profile = await supabase.from('profiles').select('coins,streak_count,last_streak_date').eq('id', userId).maybeSingle();
       if (!profile.error && profile.data) {
+        const now = new Date();
+        const last = profile.data.last_streak_date ? new Date(profile.data.last_streak_date) : null;
+        let normalizedStreak = profile.data.streak_count ?? 0;
+
+        if (last && dateDiffDays(now, last) > 1) {
+          normalizedStreak = 0;
+          await supabase.from('profiles').update({ streak_count: 0 }).eq('id', userId);
+        }
+
         setCoins(profile.data.coins ?? 0);
-        setStreakCount(profile.data.streak_count ?? 0);
+        setStreakCount(normalizedStreak);
       }
 
       const wishes = await supabase
@@ -125,9 +160,34 @@ export default function ChildHome() {
       const session = await getCurrentSession();
       const userId = session?.user?.id;
       if (userId) {
-        const nextCoins = coins + gained;
-        const nextStreak = streakCount + 1;
-        await supabase.from('profiles').update({ coins: nextCoins, streak_count: nextStreak }).eq('id', userId);
+        const baseProfile = await supabase
+          .from('profiles')
+          .select('coins,streak_count,last_streak_date')
+          .eq('id', userId)
+          .maybeSingle();
+
+        const currentCoins = baseProfile.data?.coins ?? coins;
+        const currentStreak = baseProfile.data?.streak_count ?? streakCount;
+
+        const now = new Date();
+        const last = baseProfile.data?.last_streak_date ? new Date(baseProfile.data.last_streak_date) : null;
+        const gap = last ? dateDiffDays(now, last) : 1;
+
+        const nextCoins = currentCoins + gained;
+        const nextStreak = !last ? 1 : gap <= 1 ? currentStreak + 1 : 1;
+
+        const updateWithDate = await supabase
+          .from('profiles')
+          .update({ coins: nextCoins, streak_count: nextStreak, last_streak_date: now.toISOString().slice(0, 10) })
+          .eq('id', userId);
+
+        if (updateWithDate.error) {
+          await supabase
+            .from('profiles')
+            .update({ coins: nextCoins, streak_count: nextStreak })
+            .eq('id', userId);
+        }
+
         setCoins(nextCoins);
         setStreakCount(nextStreak);
       }
@@ -173,7 +233,7 @@ export default function ChildHome() {
             <Text style={styles.coinLabel}>Coins</Text>
             <Text style={styles.coinValue}>🪙 {coins}</Text>
           </View>
-          <View style={styles.streakCard}>
+          <View style={[styles.streakCard, { backgroundColor: streakColor(streakCount), borderColor: streakColor(streakCount) }]}>
             <Text style={styles.coinLabel}>Racha</Text>
             <Text style={styles.coinValue}>🔥 {streakCount}</Text>
           </View>
