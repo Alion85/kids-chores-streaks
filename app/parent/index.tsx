@@ -31,6 +31,35 @@ const COLORS = {
 
 const WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const AVATAR_AGES = [5, 7, 9, 11, 13, 15];
+const EYE_COLORS = [
+  { key: 'blue', label: 'azules' },
+  { key: 'green', label: 'verdes' },
+];
+const AVATAR_BASES = [
+  { key: 'boy_white_black', emoji: '👦🏻' },
+  { key: 'boy_white_blond', emoji: '👱🏻‍♂️' },
+  { key: 'boy_white_brown', emoji: '🧒🏻' },
+  { key: 'boy_white_red', emoji: '🧑🏻‍🦰' },
+  { key: 'boy_brown_black', emoji: '👦🏾' },
+  { key: 'boy_brown_blond', emoji: '👱🏾‍♂️' },
+  { key: 'girl_white_black', emoji: '👧🏻' },
+  { key: 'girl_white_blond', emoji: '👱🏻‍♀️' },
+  { key: 'girl_white_brown', emoji: '🧒🏻' },
+  { key: 'girl_white_red', emoji: '👩🏻‍🦰' },
+  { key: 'girl_brown_black', emoji: '👧🏾' },
+  { key: 'girl_brown_blond', emoji: '👱🏾‍♀️' },
+];
+const AVATAR_OPTIONS = AVATAR_AGES.flatMap((age) =>
+  AVATAR_BASES.flatMap((base) =>
+    EYE_COLORS.map((eye) => ({
+      id: `${base.key}_${eye.key}_${age}`,
+      age,
+      emoji: base.emoji,
+      eye: eye.label,
+    }))
+  )
+);
 
 function next7Days(from = new Date()) {
   const now = from;
@@ -54,6 +83,7 @@ export default function ParentHome() {
   const [monthCursor, setMonthCursor] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [parentName, setParentName] = useState('Adrián Román');
+  const [childAvatarId, setChildAvatarId] = useState(AVATAR_OPTIONS[0].id);
   const [wishTitle, setWishTitle] = useState('');
   const [wishCost, setWishCost] = useState('120');
   const [wishlist, setWishlist] = useState<any[]>([]);
@@ -94,7 +124,10 @@ export default function ParentHome() {
   }, []);
 
   useEffect(() => {
-    if (selectedChildId) loadWishlist(selectedChildId);
+    if (selectedChildId) {
+      loadWishlist(selectedChildId);
+      loadChildAvatar(selectedChildId);
+    }
   }, [selectedChildId]);
 
   async function onCreateAndAssign() {
@@ -156,6 +189,22 @@ export default function ParentHome() {
     setWishTitle('');
     setWishCost('120');
     await loadWishlist(selectedChildId);
+  }
+
+  async function loadChildAvatar(childId: string) {
+    const res = await supabase.from('profiles').select('avatar_choice').eq('id', childId).maybeSingle();
+    if (!res.error && res.data?.avatar_choice) {
+      setChildAvatarId(res.data.avatar_choice);
+    }
+  }
+
+  async function saveChildAvatar(id: string) {
+    if (!selectedChildId) return;
+    setChildAvatarId(id);
+    const res = await supabase.from('profiles').update({ avatar_choice: id }).eq('id', selectedChildId);
+    if (res.error) {
+      // si falta columna, dejamos selección visual local
+    }
   }
 
   async function onLogout() {
@@ -257,6 +306,28 @@ export default function ParentHome() {
               );
             })}
           </View>
+        )}
+
+        {!!selectedChildId && (
+          <>
+            <Text style={styles.label}>Avatar del hijo:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              {AVATAR_OPTIONS.map((a) => {
+                const active = childAvatarId === a.id;
+                return (
+                  <Pressable
+                    key={a.id}
+                    onPress={() => saveChildAvatar(a.id)}
+                    style={[styles.parentAvatarOption, active && styles.parentAvatarOptionActive]}
+                  >
+                    <Text style={styles.parentAvatarEmoji}>{a.emoji}</Text>
+                    <Text style={styles.parentAvatarMeta}>{a.age}a</Text>
+                    <Text style={styles.parentAvatarMeta}>{a.eye}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </>
         )}
 
         <Pressable onPress={onCreateAndAssign} disabled={loading || children.length === 0} style={[styles.mainButton, (loading || children.length === 0) && { opacity: 0.5 }]}>
@@ -415,6 +486,18 @@ const styles = StyleSheet.create({
   kidTile: { borderRadius: 18, padding: 12, minHeight: 54, justifyContent: 'center' },
   kidTileActive: { borderWidth: 3, borderColor: '#0f172a' },
   kidName: { color: '#0b1020', fontWeight: '900', fontSize: 16 },
+  parentAvatarOption: {
+    width: 70,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#dbe1ee',
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  parentAvatarOptionActive: { borderColor: '#3E63DD', backgroundColor: '#e0e7ff' },
+  parentAvatarEmoji: { fontSize: 23 },
+  parentAvatarMeta: { fontSize: 10, color: '#334155', fontWeight: '700' },
   mainButton: { marginTop: 4, backgroundColor: COLORS.yellow, borderRadius: 18, paddingVertical: 14 },
   mainButtonText: { textAlign: 'center', color: '#111827', fontSize: 17, fontWeight: '900' },
   calendarHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

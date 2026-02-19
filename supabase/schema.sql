@@ -13,6 +13,7 @@ create table if not exists profiles (
   coins int not null default 0,
   streak_count int not null default 0,
   last_streak_date date,
+  avatar_choice text,
   created_at timestamptz not null default now()
 );
 

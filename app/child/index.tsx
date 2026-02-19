@@ -18,6 +18,10 @@ const WEEK = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const tileColors = [COLORS.yellow, COLORS.orange, COLORS.blue, COLORS.green];
 
 const AVATAR_AGES = [5, 7, 9, 11, 13, 15];
+const EYE_COLORS = [
+  { key: 'blue', label: 'ojos azules' },
+  { key: 'green', label: 'ojos verdes' },
+];
 const AVATAR_BASES = [
   { key: 'boy_white_black', label: 'Niño tez blanca pelo negro', emoji: '👦🏻' },
   { key: 'boy_white_blond', label: 'Niño tez blanca pelo güero', emoji: '👱🏻‍♂️' },
@@ -34,12 +38,14 @@ const AVATAR_BASES = [
 ];
 
 const AVATAR_OPTIONS = AVATAR_AGES.flatMap((age) =>
-  AVATAR_BASES.map((base) => ({
-    id: `${base.key}_${age}`,
-    age,
-    label: `${base.label} (${age} años)`,
-    emoji: base.emoji,
-  }))
+  AVATAR_BASES.flatMap((base) =>
+    EYE_COLORS.map((eye) => ({
+      id: `${base.key}_${eye.key}_${age}`,
+      age,
+      label: `${base.label}, ${eye.label} (${age} años)`,
+      emoji: base.emoji,
+    }))
+  )
 );
 
 type TaskItem = {
@@ -111,7 +117,7 @@ export default function ChildHome() {
   const [coins, setCoins] = useState(0);
   const [streakCount, setStreakCount] = useState(0);
   const [wishlist, setWishlist] = useState<any[]>([]);
-  const [selectedAvatar, setSelectedAvatar] = useState('👦🏻');
+  const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_OPTIONS[0].id);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const weekDates = useMemo(() => next7Days(), []);
 
@@ -158,19 +164,37 @@ export default function ChildHome() {
 
       setTasks(parsed);
 
-      const profile = await supabase.from('profiles').select('coins,streak_count').eq('id', userId).maybeSingle();
-      if (!profile.error && profile.data) {
+      const profileWithAvatar = await supabase
+        .from('profiles')
+        .select('coins,streak_count,avatar_choice')
+        .eq('id', userId)
+        .maybeSingle();
+
+      let profileData: any = null;
+      if (!profileWithAvatar.error) {
+        profileData = profileWithAvatar.data;
+      } else {
+        const profileLegacy = await supabase
+          .from('profiles')
+          .select('coins,streak_count')
+          .eq('id', userId)
+          .maybeSingle();
+        profileData = profileLegacy.data;
+      }
+
+      if (profileData) {
         const now = new Date();
         const last = await getLastCompletionDateForChild(userId);
-        let normalizedStreak = profile.data.streak_count ?? 0;
+        let normalizedStreak = profileData.streak_count ?? 0;
 
         if (last && dateDiffDays(now, last) > 1) {
           normalizedStreak = 0;
           await supabase.from('profiles').update({ streak_count: 0 }).eq('id', userId);
         }
 
-        setCoins(profile.data.coins ?? 0);
+        setCoins(profileData.coins ?? 0);
         setStreakCount(normalizedStreak);
+        if (profileData.avatar_choice) setSelectedAvatarId(profileData.avatar_choice);
       }
 
       const wishes = await supabase
@@ -250,13 +274,14 @@ export default function ChildHome() {
 
   const selectedWeekday = viewDate.getDay();
   const tasksForDay = tasks.filter((t) => !t.active_days?.length || t.active_days.includes(selectedWeekday));
+  const currentAvatar = AVATAR_OPTIONS.find((a) => a.id === selectedAvatarId) ?? AVATAR_OPTIONS[0];
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
       <View style={styles.hero}>
         <View style={styles.heroHeaderRow}>
           <Pressable style={styles.heroAvatarCircle} onPress={() => setShowAvatarPicker((p) => !p)}>
-            <Text style={styles.heroAvatarText}>{selectedAvatar}</Text>
+            <Text style={styles.heroAvatarText}>{currentAvatar.emoji}</Text>
           </Pressable>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTop}>MY TASKS</Text>
@@ -271,13 +296,21 @@ export default function ChildHome() {
           <Text style={styles.sectionTitle}>Elige tu avatar</Text>
           <View style={styles.avatarGrid}>
             {AVATAR_OPTIONS.map((a) => {
-              const active = selectedAvatar === a.emoji;
+              const active = selectedAvatarId === a.id;
               return (
                 <Pressable
                   key={a.id}
-                  onPress={() => {
-                    setSelectedAvatar(a.emoji);
+                  onPress={async () => {
+                    setSelectedAvatarId(a.id);
                     setShowAvatarPicker(false);
+                    const session = await getCurrentSession();
+                    const userId = session?.user?.id;
+                    if (userId) {
+                      const save = await supabase.from('profiles').update({ avatar_choice: a.id }).eq('id', userId);
+                      if (save.error) {
+                        // fallback silencioso cuando la columna aún no existe
+                      }
+                    }
                   }}
                   style={[styles.avatarOption, active && styles.avatarOptionActive]}
                 >

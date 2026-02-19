@@ -1,6 +1,7 @@
 alter table profiles add column if not exists coins int not null default 0;
 alter table profiles add column if not exists streak_count int not null default 0;
 alter table profiles add column if not exists last_streak_date date;
+alter table profiles add column if not exists avatar_choice text;
 
 create table if not exists wishlists (
   id uuid primary key default gen_random_uuid(),
