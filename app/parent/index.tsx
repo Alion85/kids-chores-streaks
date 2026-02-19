@@ -87,6 +87,7 @@ export default function ParentHome() {
   const [wishTitle, setWishTitle] = useState('');
   const [wishCost, setWishCost] = useState('120');
   const [wishlist, setWishlist] = useState<any[]>([]);
+  const [showChildConfig, setShowChildConfig] = useState(false);
 
   const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
@@ -310,23 +311,31 @@ export default function ParentHome() {
 
         {!!selectedChildId && (
           <>
-            <Text style={styles.label}>Avatar del hijo:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              {AVATAR_OPTIONS.map((a) => {
-                const active = childAvatarId === a.id;
-                return (
-                  <Pressable
-                    key={a.id}
-                    onPress={() => saveChildAvatar(a.id)}
-                    style={[styles.parentAvatarOption, active && styles.parentAvatarOptionActive]}
-                  >
-                    <Text style={styles.parentAvatarEmoji}>{a.emoji}</Text>
-                    <Text style={styles.parentAvatarMeta}>{a.age}a</Text>
-                    <Text style={styles.parentAvatarMeta}>{a.eye}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+            <Pressable style={styles.childConfigBtn} onPress={() => setShowChildConfig((v) => !v)}>
+              <Text style={styles.childConfigBtnText}>{showChildConfig ? 'Cerrar configuración de mi hijo' : 'Configurar a mi hijo'}</Text>
+            </Pressable>
+
+            {showChildConfig && (
+              <>
+                <Text style={styles.label}>Avatar del hijo:</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                  {AVATAR_OPTIONS.map((a) => {
+                    const active = childAvatarId === a.id;
+                    return (
+                      <Pressable
+                        key={a.id}
+                        onPress={() => saveChildAvatar(a.id)}
+                        style={[styles.parentAvatarOption, active && styles.parentAvatarOptionActive]}
+                      >
+                        <Text style={styles.parentAvatarEmoji}>{a.emoji}</Text>
+                        <Text style={styles.parentAvatarMeta}>{a.age}a</Text>
+                        <Text style={styles.parentAvatarMeta}>{a.eye}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            )}
           </>
         )}
 
@@ -486,6 +495,14 @@ const styles = StyleSheet.create({
   kidTile: { borderRadius: 18, padding: 12, minHeight: 54, justifyContent: 'center' },
   kidTileActive: { borderWidth: 3, borderColor: '#0f172a' },
   kidName: { color: '#0b1020', fontWeight: '900', fontSize: 16 },
+  childConfigBtn: {
+    backgroundColor: '#e0e7ff',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  childConfigBtnText: { color: '#1e3a8a', fontWeight: '800' },
   parentAvatarOption: {
     width: 70,
     borderRadius: 14,
