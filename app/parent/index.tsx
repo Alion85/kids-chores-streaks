@@ -95,7 +95,7 @@ export default function ParentHome() {
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [showChildConfig, setShowChildConfig] = useState(false);
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
-  const [activeBottomTab, setActiveBottomTab] = useState<'children'>('children');
+  const [activeBottomTab, setActiveBottomTab] = useState<'children' | 'tasks' | 'approvals'>('children');
 
   const weekDates = useMemo(() => next7Days(viewDate), [viewDate]);
 
@@ -384,6 +384,7 @@ export default function ParentHome() {
         </View>
       )}
 
+      {activeBottomTab === 'tasks' && (
       <View style={styles.cardWhite}>
         <Text style={styles.sectionTitle}>Crear y asignar tarea</Text>
 
@@ -476,7 +477,10 @@ export default function ParentHome() {
           <Text style={styles.mainButtonText}>{loading ? 'Guardando...' : 'Crear y asignar'}</Text>
         </Pressable>
       </View>
+      )}
 
+      {activeBottomTab === 'approvals' && (
+      <>
       <View style={styles.cardWhite}>
         <Text style={styles.sectionTitle}>✅ Pendientes por aprobar</Text>
         {pendingApprovals.length === 0 ? (
@@ -513,6 +517,8 @@ export default function ParentHome() {
             </View>
           ))}
       </View>
+      </>
+      )}
 
       <View style={styles.cardWhite}>
         <Text style={styles.sectionTitle}>🪙 Wish List del niño</Text>
@@ -622,13 +628,31 @@ export default function ParentHome() {
       <Pressable onPress={onLogout} style={styles.logoutBtn}><Text style={styles.logoutBtnText}>Cerrar sesión</Text></Pressable>
 
       <View style={styles.bottomMenuWrap}>
-        <Pressable
-          onPress={() => setActiveBottomTab('children')}
-          style={[styles.bottomMenuItem, activeBottomTab === 'children' && styles.bottomMenuItemActive]}
-        >
-          <Text style={styles.bottomMenuIcon}>👨‍👩‍👧</Text>
-          <Text style={[styles.bottomMenuLabel, activeBottomTab === 'children' && styles.bottomMenuLabelActive]}>Mis hijos</Text>
-        </Pressable>
+        <View style={styles.bottomMenuRow}>
+          <Pressable
+            onPress={() => setActiveBottomTab('children')}
+            style={[styles.bottomMenuItem, activeBottomTab === 'children' && styles.bottomMenuItemActive]}
+          >
+            <Text style={styles.bottomMenuIcon}>👨‍👩‍👧</Text>
+            <Text style={[styles.bottomMenuLabel, activeBottomTab === 'children' && styles.bottomMenuLabelActive]}>Mis hijos</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setActiveBottomTab('tasks')}
+            style={[styles.bottomMenuItem, activeBottomTab === 'tasks' && styles.bottomMenuItemActive]}
+          >
+            <Text style={styles.bottomMenuIcon}>📝</Text>
+            <Text style={[styles.bottomMenuLabel, activeBottomTab === 'tasks' && styles.bottomMenuLabelActive]}>Tareas</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setActiveBottomTab('approvals')}
+            style={[styles.bottomMenuItem, activeBottomTab === 'approvals' && styles.bottomMenuItemActive]}
+          >
+            <Text style={styles.bottomMenuIcon}>✅</Text>
+            <Text style={[styles.bottomMenuLabel, activeBottomTab === 'approvals' && styles.bottomMenuLabelActive]}>Aprobaciones</Text>
+          </Pressable>
+        </View>
       </View>
     </ScrollView>
   );
@@ -784,11 +808,12 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
   },
+  bottomMenuRow: { flexDirection: 'row', gap: 8 },
   bottomMenuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
+    gap: 6,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 14,
     backgroundColor: '#1e293b',
