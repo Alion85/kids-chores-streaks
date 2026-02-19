@@ -60,6 +60,25 @@ function dateDiffDays(a: Date, b: Date) {
   return Math.floor((one - two) / (1000 * 60 * 60 * 24));
 }
 
+async function getLastCompletionDateForChild(userId: string) {
+  const assignmentRes = await supabase.from('chore_assignments').select('id').eq('child_id', userId);
+  if (assignmentRes.error) return null;
+
+  const ids = (assignmentRes.data ?? []).map((a: any) => a.id).filter(Boolean);
+  if (!ids.length) return null;
+
+  const completionRes = await supabase
+    .from('chore_completions')
+    .select('completed_for_date')
+    .in('assignment_id', ids)
+    .order('completed_for_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (completionRes.error) return null;
+  return completionRes.data?.completed_for_date ? new Date(completionRes.data.completed_for_date) : null;
+}
+
 export default function ChildHome() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -112,10 +131,10 @@ export default function ChildHome() {
 
       setTasks(parsed);
 
-      const profile = await supabase.from('profiles').select('coins,streak_count,last_streak_date').eq('id', userId).maybeSingle();
+      const profile = await supabase.from('profiles').select('coins,streak_count').eq('id', userId).maybeSingle();
       if (!profile.error && profile.data) {
         const now = new Date();
-        const last = profile.data.last_streak_date ? new Date(profile.data.last_streak_date) : null;
+        const last = await getLastCompletionDateForChild(userId);
         let normalizedStreak = profile.data.streak_count ?? 0;
 
         if (last && dateDiffDays(now, last) > 1) {
@@ -162,7 +181,7 @@ export default function ChildHome() {
       if (userId) {
         const baseProfile = await supabase
           .from('profiles')
-          .select('coins,streak_count,last_streak_date')
+          .select('coins,streak_count')
           .eq('id', userId)
           .maybeSingle();
 
@@ -170,23 +189,16 @@ export default function ChildHome() {
         const currentStreak = baseProfile.data?.streak_count ?? streakCount;
 
         const now = new Date();
-        const last = baseProfile.data?.last_streak_date ? new Date(baseProfile.data.last_streak_date) : null;
+        const last = await getLastCompletionDateForChild(userId);
         const gap = last ? dateDiffDays(now, last) : 1;
 
         const nextCoins = currentCoins + gained;
         const nextStreak = !last ? 1 : gap <= 1 ? currentStreak + 1 : 1;
 
-        const updateWithDate = await supabase
+        await supabase
           .from('profiles')
-          .update({ coins: nextCoins, streak_count: nextStreak, last_streak_date: now.toISOString().slice(0, 10) })
+          .update({ coins: nextCoins, streak_count: nextStreak })
           .eq('id', userId);
-
-        if (updateWithDate.error) {
-          await supabase
-            .from('profiles')
-            .update({ coins: nextCoins, streak_count: nextStreak })
-            .eq('id', userId);
-        }
 
         setCoins(nextCoins);
         setStreakCount(nextStreak);
